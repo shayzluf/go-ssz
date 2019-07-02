@@ -111,18 +111,23 @@ func BenchmarkHashWithCache(b *testing.B) {
 func TestBlockCache_maxSize(t *testing.T) {
 	maxCacheSize := int64(10000)
 	cache := newHashCache(maxCacheSize)
-	for i := uint64(0); i < uint64(maxCacheSize+1025); i++ {
+	accessSize := int64(500)
+	for i := uint64(0); i < uint64(maxCacheSize+accessSize); i++ {
 		rootNum := make([]byte, 8)
 		binary.LittleEndian.PutUint64(rootNum, i)
 		if err := cache.AddRoot(toBytes32(rootNum[:4]), []byte{1}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	log.Printf(
-		"hash cache key size is %d, itemcount is %d",
-		maxCacheSize,
-		cache.hashCache.ItemCount(),
-	)
+	for int64(cache.hashCache.ItemCount()) > maxCacheSize && cache.hashCache.ItemCount() <= int(maxCacheSize+accessSize) {
+		log.Printf(
+			"hash cache key size is %d, itemcount is %d",
+			maxCacheSize,
+			cache.hashCache.ItemCount(),
+		)
+		time.Sleep(1)
+	}
+
 	if int64(cache.hashCache.ItemCount()) > maxCacheSize {
 		t.Errorf(
 			"Expected hash cache key size to be %d, got %d",
